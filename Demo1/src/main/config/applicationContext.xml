@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd
+        ">
+    <context:component-scan base-package="org.deepsl.hrm"/>
+    <mvc:annotation-driven></mvc:annotation-driven>
+
+    <mvc:default-servlet-handler/>
+
+    <!--逻辑视图-->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/jsp/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+
+    <!-- web.xml中shiro的filter对应的bean -->
+    <!-- Shiro 的Web过滤器 -->
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager" />
+
+        <!-- loginUrl认证提交地址，如果没有认证将会请求此地址进行认证，请求此地址将由 formAuthenticationFilter进行表单认证 -->
+        <property name="loginUrl" value="/loginForm" />
+
+        <!-- 认证成功统一跳转到first.action，建议不配置，shiro认证成功自动到上一个请求路径 -->
+         <property name="successUrl" value="/main"/>
+
+        <!-- 通过unauthorizedUrl指定没有权限操作时跳转页面-->
+        <property name="unauthorizedUrl" value="/refuse.jsp" />
+
+        <!-- 过虑器链定义，从上向下顺序执行，一般将/**放在最下边 -->
+        <property name="filterChainDefinitions">
+            <value>
+                <!-- -->
+                /css/** =anon
+                /js/** =anon
+                /images/** =anon
+                /favicon.ico/**  =anon
+                /logout.action =logout
+                /employee/selectEmployee  = perms[employee:query]
+                /employee/addEmployee = perms[employee:add]
+                <!--/user/addUser = perms[user:add]-->
+                /user/selectUser = perms[user:query]
+                /dept/selectDept =perms[dept:query]
+                /dept/addDept =perms[dept:add]
+                /job/selectJob = perms[job:query]
+                /job/addJob =perms[job:add]
+                /notice/selectNotice = perms[notice:query]
+                /notice/addNotice = perms[notice:add]
+                /document/selectDocument = perms[document:query]
+                /document/addDocument = = perms[document:add]
+                /** = authc
+            </value>
+        </property>
+    </bean>
+
+    <!-- securityManager安全管理器 -->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="customRealm"/>
+    </bean>
+
+    <!--自定义 realm -->
+    <bean id="customRealm" class="org.deepsl.hrm.shiro.CustomRealm"></bean>
+
+    <!--开启spring shiro注解方式验证-->
+    <aop:config proxy-target-class="true"></aop:config>
+    <bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+        <property name="securityManager" ref="securityManager"></property>
+    </bean>
+    <!-- 配置异常跳转页面，此处异常页面是使用shiro注解时没有权限访问的跳转页面，不配置则会报500错误 -->
+    <bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+        <property name="exceptionMappings">
+            <props>
+                <prop key="org.apache.shiro.authz.UnauthorizedException">
+                    <!-- 没有权限时跳转的页面 -->
+                    /refuse
+                </prop>
+            </props>
+        </property>
+    </bean>
+
+    <!--&lt;!&ndash;拦截器&ndash;&gt;-->
+    <!--<mvc:interceptors>-->
+        <!--<mvc:interceptor>-->
+            <!--<mvc:mapping path="/user/*"/>-->
+            <!--<bean class="org.deepsl.hrm.interceptor.AuthorizedInterceptor"></bean>-->
+        <!--</mvc:interceptor>-->
+    <!--</mvc:interceptors>-->
+
+    <!--让spring去生成sqlSessionFacotry-->
+    <bean id="sessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="mydatasource"></property>
+        <property name="configLocation" value="classpath:mybatis.xml"></property>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="org.deepsl.hrm.dao"></property>
+        <property name="sqlSessionFactoryBeanName" value="sessionFactory"></property>
+    </bean>
+
+    <!--增加spring来控制事物-->
+    <!--<tx:annotation-driven transaction-manager="txmanager"></tx:annotation-driven>-->
+
+    <!--<bean id="txmanager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">-->
+        <!--<property name="dataSource" ref="mydatasource"></property>-->
+    <!--</bean>-->
+
+    <!--连接数据库-->
+    <bean id="mydatasource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="password" value="123456"></property>
+        <property name="user" value="root"></property>
+        <property name="jdbcUrl" value="jdbc:mysql://localhost:3306/st?serverTimezone=GMT"></property>
+        <property name="driverClass" value="com.mysql.cj.jdbc.Driver"></property>
+    </bean>
+
+    <!--文件上传-->
+    <!--自动去增加处理器适配器和处理器映射器-->
+    <!--<mvc:annotation-driven conversion-service="myConversionServcie"></mvc:annotation-driven>-->
+    <!--&lt;!&ndash;注册一个springmvc的类型转换服务&ndash;&gt;-->
+    <!--<bean id="myConversionServcie" class="org.springframework.format.support.FormattingConversionServiceFactoryBean">-->
+        <!--<property name="converters">-->
+            <!--<set>-->
+                <!--<bean class="com.cskaoyan.utils.MyDateConverter"></bean>-->
+            <!--</set>-->
+        <!--</property>-->
+    <!--</bean>-->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="maxUploadSizePerFile" value="51200">
+        </property>
+    </bean>
+
+</beans>

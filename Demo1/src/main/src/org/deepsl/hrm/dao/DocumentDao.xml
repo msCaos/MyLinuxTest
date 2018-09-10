@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.deepsl.hrm.dao.DocumentDao">
+
+    <insert id="save" parameterType="org.deepsl.hrm.domain.Document">
+        insert into  document_inf values ( null ,#{title},#{fileName},#{remark},#{createDate},#{filepath},#{user.id})
+    </insert>
+
+    <resultMap id="documentAndUser" type="document">
+        <id property="id" column="id"></id>
+        <association property="user"
+                     javaType="User"
+                     select="org.deepsl.hrm.dao.UserDao.selectById"
+                     column="uid">
+        </association>
+    </resultMap>
+    <select id="selectByPage" parameterType="HashMap" resultMap="documentAndUser">
+        select * from document_inf
+        <where>
+            <if test="document.title !=null and !document.title.isEmpty()">
+                title like #{document.title}
+            </if>
+        </where>
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="count" parameterType="HashMap" resultType="int">
+        select count(*) from document_inf
+        <where>
+            <if test="document.title !=null and !document.title.isEmpty()">
+                title like #{document.title}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectById" parameterType="int" resultType="document">
+        select * from document_inf where id = #{id};
+    </select>
+
+    <!--<update id="update" parameterType="User">-->
+        <!--update hrmt_user set username = #{username},loginname = #{loginname},password = #{password},status = #{status}-->
+        <!--where id = #{id}-->
+    <!--</update>-->
+
+    <!--<delete id="deleteById" parameterType="int">-->
+        <!--delete from hrmt_user where id = #{id}-->
+    <!--</delete>-->
+
+
+</mapper>
